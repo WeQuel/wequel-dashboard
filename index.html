@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeQuel Dashboard</title>
+<script src="https://alcdn.msauth.net/browser/2.38.1/js/msal-browser.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:#f5f5f3;color:#1a1a1a;min-height:100vh;}
+.page{max-width:980px;margin:0 auto;padding:2rem 1.5rem;}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px;}
+.brand{display:flex;align-items:center;gap:12px;}
+.logo{font-size:11px;font-weight:700;letter-spacing:.12em;color:#aaa;text-transform:uppercase;}
+.title{font-size:20px;font-weight:600;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.status{font-size:12px;color:#aaa;}
+.refresh-btn{font-size:13px;color:#444;background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:7px 16px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.refresh-btn:hover{background:#f0f0ee;}
+.refresh-btn svg{width:14px;height:14px;stroke:#666;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;text-align:center;}
+.login-logo{font-size:14px;font-weight:700;letter-spacing:.12em;color:#aaa;text-transform:uppercase;margin-bottom:8px;}
+.login-title{font-size:24px;font-weight:600;color:#1a1a1a;}
+.login-sub{font-size:14px;color:#888;max-width:320px;line-height:1.6;}
+.login-btn{display:flex;align-items:center;gap:10px;background:#0078d4;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;}
+.login-btn:hover{background:#006cbd;}
+.login-btn svg{width:18px;height:18px;}
+.user-info{display:flex;align-items:center;gap:8px;font-size:12px;color:#666;}
+.user-dot{width:28px;height:28px;border-radius:50%;background:#0078d4;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;}
+.logout-btn{font-size:11px;color:#aaa;background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:4px;}
+.logout-btn:hover{color:#1a1a1a;background:#f0f0ee;}
+.nav{display:flex;gap:2px;margin-bottom:1.75rem;border-bottom:1px solid #e8e8e6;}
+.nav-btn{font-size:13px;padding:8px 18px;border:none;background:transparent;color:#666;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;font-family:inherit;}
+.nav-btn:hover{color:#1a1a1a;}
+.nav-btn.on{color:#1a1a1a;font-weight:600;border-bottom:2px solid #1a1a1a;}
+.tabs{display:flex;gap:4px;margin-bottom:1.75rem;background:#ebebea;padding:4px;border-radius:10px;width:fit-content;flex-wrap:wrap;}
+.tab{font-size:12px;padding:5px 14px;border-radius:7px;border:none;background:transparent;color:#666;cursor:pointer;font-family:inherit;}
+.tab:hover{color:#1a1a1a;}
+.tab.on{background:#fff;color:#1a1a1a;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.seclab{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.08em;margin:0 0 12px;}
+.cards4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:2rem;}
+@media(max-width:800px){.cards4{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:500px){.cards4{grid-template-columns:1fr;}}
+.pcard{background:#fff;border:1px solid #e8e8e6;border-radius:12px;overflow:hidden;}
+.pcard-head{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid #f0f0ee;}
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;}
+.av-s{background:#dbeafe;color:#1d4ed8;}.av-h{background:#fef3c7;color:#92400e;}.av-m{background:#dcfce7;color:#166534;}.av-f{background:#fce7f3;color:#9d174d;}.av-w{background:#ede9fe;color:#5b21b6;}
+.pname{font-size:13px;font-weight:600;}
+.kpi-block{padding:9px 14px;border-bottom:1px solid #f0f0ee;}
+.kpi-block:last-child{border-bottom:none;}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.kpi-label{font-size:10px;color:#666;}
+.kpi-right{display:flex;align-items:center;gap:4px;}
+.tot{font-size:12px;font-weight:600;}
+.mal{font-size:10px;color:#aaa;}
+.pill{font-size:9px;font-weight:600;padding:2px 6px;border-radius:999px;}
+.pill-g{background:#dcfce7;color:#166534;}.pill-a{background:#fef3c7;color:#92400e;}.pill-r{background:#fee2e2;color:#991b1b;}.pill-n{background:#f0f0ee;color:#aaa;}
+.week-row{display:flex;gap:3px;}
+.week-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;}
+.wlbl{font-size:8px;color:#aaa;}
+.wval{font-size:11px;font-weight:600;min-height:16px;display:flex;align-items:center;justify-content:center;}
+.wval.empty{color:#ddd;font-weight:400;}
+.prog{height:2px;border-radius:999px;background:#f0f0ee;margin-top:4px;overflow:hidden;}
+.pb{height:2px;border-radius:999px;}
+.pb-g{background:#22c55e;}.pb-a{background:#f59e0b;}.pb-r{background:#ef4444;}
+.kons-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;opacity:.55;}
+.kons-lbl{font-size:10px;color:#666;}
+.kons-val{font-size:12px;font-weight:600;}
+.wcard{background:#fff;border:1px solid #e8e8e6;border-radius:12px;overflow:hidden;margin-bottom:2rem;}
+.wcard-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #f0f0ee;}
+.wname{font-size:14px;font-weight:600;}
+.wtable-wrap{padding:0 16px 8px;overflow-x:auto;}
+.uppdrag-card{background:#fff;border:1px solid #e8e8e6;border-radius:12px;overflow:hidden;margin-bottom:2rem;}
+.uppdrag-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid #f0f0ee;flex-wrap:wrap;gap:10px;}
+.uppdrag-title{font-size:14px;font-weight:600;}
+.filter-row{display:flex;gap:5px;flex-wrap:wrap;}
+.filt{font-size:11px;padding:3px 11px;border-radius:999px;border:1px solid #e0e0e0;background:#fff;color:#666;cursor:pointer;}
+.filt.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#f0f0ee;border-bottom:1px solid #f0f0ee;}
+.stat-box{background:#fff;padding:14px 16px;}
+.stat-num{font-size:24px;font-weight:600;}
+.stat-lbl{font-size:11px;color:#aaa;margin-top:2px;}
+.utbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;font-size:10px;font-weight:600;color:#aaa;padding:9px 12px;border-bottom:1px solid #f0f0ee;white-space:nowrap;text-transform:uppercase;letter-spacing:.05em;}
+td{padding:10px 12px;border-bottom:1px solid #f8f8f7;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafaf9;}
+.typ-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;}
+.typ-a{background:#dcfce7;color:#166534;}.typ-u{background:#dbeafe;color:#1d4ed8;}
+.status-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:999px;background:#f0f9ff;color:#0369a1;}
+.ansv-dot{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;}
+.ansv-Sam{background:#dbeafe;color:#1d4ed8;}.ansv-Hanna{background:#fef3c7;color:#92400e;}.ansv-Michel{background:#dcfce7;color:#166534;}.ansv-Anmar{background:#ede9fe;color:#5b21b6;}.ansv-Josef{background:#f1f0e8;color:#444;}.ansv-Fredrik{background:#fce7f3;color:#9d174d;}
+.err{background:#fee2e2;color:#991b1b;padding:1.5rem;border-radius:10px;font-size:13px;line-height:1.7;margin:1rem 0;}
+/* ===== RÄKNESNURRA ===== */
+
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f3;min-height:100vh;padding:1.5rem 1rem;}
+.wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+h1{font-size:17px;font-weight:600;color:#1a1a1a;margin-bottom:2px;}
+.sub{font-size:12px;color:#aaa;}
+
+.typ-row{display:flex;gap:6px;}
+.tt{flex:1;padding:11px 6px;border-radius:10px;border:1.5px solid #e0e0e0;background:#fff;color:#666;cursor:pointer;font-size:13px;font-weight:500;text-align:center;font-family:inherit;transition:all .15s;}
+.tt:hover{border-color:#aaa;color:#1a1a1a;}
+.tt.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+
+.input-card{background:#fff;border-radius:14px;border:1px solid #e8e8e6;padding:1.25rem;display:flex;flex-direction:column;gap:14px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.flbl{font-size:12px;color:#666;}
+.iw{position:relative;}
+.inp{width:100%;padding:13px 60px 13px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:20px;font-weight:600;color:#1a1a1a;background:#fff;outline:none;font-family:inherit;transition:border .15s;}
+.inp:focus{border-color:#1a1a1a;}
+.un{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:12px;color:#aaa;pointer-events:none;font-weight:500;}
+.quick-btns{display:flex;gap:5px;flex-wrap:wrap;}
+.qb{font-size:11px;padding:4px 11px;border-radius:999px;border:1px solid #e0e0e0;background:#f8f8f7;color:#666;cursor:pointer;font-family:inherit;transition:all .15s;}
+.qb:hover,.qb.on{background:#1a1a1a;color:#fff;border-color:#1a1a1a;}
+
+/* Resultat */
+.result-card{border-radius:14px;padding:1.25rem;border:1.5px solid;}
+.result-card.green{background:#EAF3DE;border-color:#c5e0a0;}
+.result-card.orange{background:#FAEEDA;border-color:#e8c98a;}
+.result-card.red{background:#FCEBEB;border-color:#f5b8b8;}
+.result-card.empty{background:#fff;border-color:#e8e8e6;text-align:center;padding:2rem;}
+
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:4px;}
+.gauge-svg{width:180px;height:100px;}
+.pct-big{font-size:38px;font-weight:700;text-align:center;margin-top:-4px;}
+.status-pill{display:inline-block;font-size:13px;font-weight:600;padding:5px 16px;border-radius:999px;margin:6px auto 0;display:block;text-align:center;width:fit-content;}
+.sp-g{background:rgba(255,255,255,.7);color:#27500A;}
+.sp-o{background:rgba(255,255,255,.7);color:#633806;}
+.sp-r{background:rgba(255,255,255,.7);color:#991b1b;}
+
+.divider{height:1px;background:rgba(0,0,0,.07);margin:10px 0;}
+
+/* Lön-info */
+.lon-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+.lon-lbl{color:#666;}
+.lon-val{font-weight:600;font-size:15px;}
+.lon-val.green{color:#1a3d09;}
+.lon-val.red{color:#991b1b;}
+
+/* Maxlön-box */
+.max-box{border-radius:10px;padding:12px 14px;margin-top:8px;}
+.max-box.green{background:rgba(255,255,255,.6);}
+.max-box.orange{background:rgba(255,255,255,.5);}
+.max-box.red{background:rgba(255,255,255,.5);}
+.max-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.max-lbl.green{color:#3B6D11;}
+.max-lbl.orange{color:#633806;}
+.max-lbl.red{color:#791F1F;}
+.max-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.max-item{display:flex;flex-direction:column;gap:2px;}
+.mi-lbl{font-size:10px;color:#666;}
+.mi-val{font-size:15px;font-weight:700;}
+.mi-val.green{color:#1a3d09;}
+.mi-val.red{color:#991b1b;}
+
+.warn-text{font-size:11px;margin-top:6px;line-height:1.5;}
+.warn-text.red{color:#791F1F;}
+
+.empty-icon{font-size:28px;margin-bottom:6px;}
+.empty-txt{font-size:13px;color:#ccc;}
+
+.info-btn{width:22px;height:22px;border-radius:50%;background:#f0f0ee;border:none;color:#888;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.info-btn:hover{background:#1a1a1a;color:#fff;}
+.info-panel{background:#fff;border:1.5px solid #e0e0e0;border-radius:14px;padding:1.25rem;position:relative;}
+.info-close{position:absolute;top:12px;right:14px;cursor:pointer;color:#bbb;font-size:14px;}
+.info-close:hover{color:#1a1a1a;}
+.info-title{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:12px;}
+.info-section{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f0f0ee;}
+.info-section:last-of-type{border-bottom:none;margin-bottom:8px;padding-bottom:0;}
+.info-tag{font-size:12px;font-weight:700;margin-bottom:4px;}
+.info-tag.green{color:#27500A;}
+.info-tag.orange{color:#633806;}
+.info-tag.red{color:#791F1F;}
+.info-text{font-size:12px;color:#555;line-height:1.6;}
+.info-footer{font-size:11px;color:#999;font-style:italic;line-height:1.5;padding-top:8px;border-top:1px solid #f0f0ee;}
+
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- Login screen -->
+<div id="login-screen" class="login-screen">
+  <div>
+    <div class="login-logo">WeQuel</div>
+    <div class="login-title">Dashboard</div>
+  </div>
+  <div class="login-sub">Logga in med ditt WeQuel-konto för att se dashboarden.</div>
+  <button class="login-btn" onclick="signIn()">
+    <svg viewBox="0 0 23 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
+      <rect x="12" y="1" width="10" height="10" fill="#7FBA00"/>
+      <rect x="1" y="12" width="10" height="10" fill="#00A4EF"/>
+      <rect x="12" y="12" width="10" height="10" fill="#FFB900"/>
+    </svg>
+    Logga in med Microsoft
+  </button>
+</div>
+
+<!-- Dashboard (hidden until login) -->
+<div id="app-screen" style="display:none;">
+<header>
+  <div class="brand">
+    <span class="logo">WeQuel</span>
+    <span class="title">Dashboard</span>
+  </div>
+  <div class="header-right">
+    <span class="status" id="status">Laddar...</span>
+    <div class="user-info" id="user-info"></div>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadData()" style="display:none;">
+      <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Uppdatera
+    </button>
+  </div>
+</header>
+
+<div class="nav">
+  <button class="nav-btn on" id="nav-dashboard" onclick="showPage('dashboard')">Sales KPI</button>
+  <button class="nav-btn" id="nav-kalkyl" onclick="showPage('kalkyl')">Räknesnurra</button>
+</div>
+
+<div id="page-dashboard">
+  <div class="tabs" id="tabs"></div>
+  <div id="main-content"></div>
+</div>
+
+<div id="page-kalkyl" style="display:none;">
+<div class="wrap">
+  <div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <h1>Kalkyl</h1>
+      <button class="info-btn" onclick="toggleInfo()" aria-label="Visa förklaring av marginalnivåer">ⓘ</button>
+    </div>
+    <p class="sub">Fyll i lön och arvode — marginalen beräknas direkt</p>
+  </div>
+
+  <!-- Info: Timanställd -->
+  <div class="info-panel" id="info-panel-tim" style="display:none;">
+    <div class="info-close" onclick="toggleInfo()">✕</div>
+    <div class="info-title">Timanställd — vad betyder nivåerna?</div>
+
+    <div class="info-section">
+      <div class="info-tag green">🟢 Grön — marginal över 39%</div>
+      <div class="info-text">Affären har en sund marginal enligt riktlinje. Konsultchefen kan gå vidare och kommunicera lönen direkt till kandidaten utan ytterligare godkännande.</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-tag orange">🟠 Orange — marginal 28–39%</div>
+      <div class="info-text">Marginalen är lägre men fortfarande inom en acceptabel zon. Konsultchefen <strong>kan själv besluta</strong> att gå vidare med affären — men bör göra en medveten avvägning (t.ex. strategisk kund, lång relation, eller volym).</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-tag red">🔴 Röd — marginal 0–28%</div>
+      <div class="info-text">Marginalen är under riktlinje. Lönen <strong>får inte kommuniceras</strong> till kandidaten förrän affären godkänts skriftligt av ansvarig chef. Detta skyddar bolagets lönsamhet och säkerställer att undantag dokumenteras.</div>
+    </div>
+
+    <div class="info-footer">Mål: jobba mot grönt. Orange kräver eget omdöme. Rött kräver alltid godkännande innan kommunikation med konsult.</div>
+  </div>
+
+  <!-- Info: Underkonsult -->
+  <div class="info-panel" id="info-panel-uk" style="display:none;">
+    <div class="info-close" onclick="toggleInfo()">✕</div>
+    <div class="info-title">Underkonsult — vad betyder nivåerna?</div>
+
+    <div class="info-section">
+      <div class="info-tag green">🟢 Grön — marginal över 18%</div>
+      <div class="info-text">Affären har en sund marginal enligt riktlinje. Konsultchefen kan gå vidare och kommunicera priset direkt till underkonsulten utan ytterligare godkännande.</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-tag orange">🟠 Orange — marginal 12–18%</div>
+      <div class="info-text">Marginalen är lägre men fortfarande inom en acceptabel zon. Konsultchefen <strong>kan själv besluta</strong> att gå vidare med affären — men bör göra en medveten avvägning.</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-tag red">🔴 Röd — marginal under 12%</div>
+      <div class="info-text">Marginalen är under riktlinje. Priset <strong>får inte kommuniceras</strong> till underkonsulten förrän affären godkänts skriftligt av ansvarig chef.</div>
+    </div>
+
+    <div class="info-footer">Mål: jobba mot grönt. Orange kräver eget omdöme. Rött kräver alltid godkännande innan kommunikation med underkonsult.</div>
+  </div>
+
+  <!-- Info: Fastanställd -->
+  <div class="info-panel" id="info-panel-man" style="display:none;">
+    <div class="info-close" onclick="toggleInfo()">✕</div>
+    <div class="info-title">Fastanställd — vad betyder nivåerna?</div>
+
+    <div class="info-section">
+      <div class="info-tag green">🟢 Grön — marginal 38% eller högre</div>
+      <div class="info-text">Affären har en sund marginal enligt riktlinje. Konsultchefen kan gå vidare och kommunicera lönen direkt till kandidaten utan ytterligare godkännande.</div>
+    </div>
+
+    <div class="info-section">
+      <div class="info-tag red">🔴 Röd — marginal under 38%</div>
+      <div class="info-text">Marginalen är under riktlinje. Lönen <strong>får inte kommuniceras</strong> till kandidaten förrän affären godkänts skriftligt av ansvarig chef. Detta skyddar bolagets lönsamhet och säkerställer att undantag dokumenteras.</div>
+    </div>
+
+    <div class="info-footer">Mål: jobba mot grönt. Rött kräver alltid godkännande innan kommunikation med kandidat.</div>
+  </div>
+
+  <!-- Typ -->
+  <div class="typ-row">
+    <button class="tt on" onclick="setT('tim')">Timanställd</button>
+    <button class="tt" onclick="setT('uk')">Underkonsult</button>
+    <button class="tt" onclick="setT('man')">Fastanställd</button>
+  </div>
+
+  <!-- Inputs -->
+  <div class="input-card">
+    <div class="field">
+      <label class="flbl" id="lon-lbl">Timlön</label>
+      <div class="iw">
+        <input class="inp" id="inp-lon" type="number" placeholder="0" oninput="calc()">
+        <span class="un" id="lon-unit">kr/tim</span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="flbl">Arvode mot kund <strong>(OBS Arvode efter VMS/broker fee!!)</strong></label>
+      <div class="iw">
+        <input class="inp" id="inp-pris" type="number" placeholder="0" oninput="calc()">
+        <span class="un">kr/tim</span>
+      </div>
+      <div class="quick-btns" id="quick-btns">
+        <span style="font-size:11px;color:#bbb;line-height:2;">Snabbval:</span>
+        <button class="qb" onclick="setQ(500)">500</button>
+        <button class="qb" onclick="setQ(600)">600</button>
+        <button class="qb" onclick="setQ(700)">700</button>
+        <button class="qb" onclick="setQ(800)">800</button>
+        <button class="qb" onclick="setQ(900)">900</button>
+        <button class="qb" onclick="setQ(1000)">1 000</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultat -->
+  <div id="result">
+    <div class="result-card empty">
+      <div class="empty-icon">💡</div>
+      <div class="empty-txt">Fyll i lön och arvode för att se marginal</div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- end app-screen -->
+</div><!-- end page -->
+
+<script>
+// ─── MSAL CONFIG ──────────────────────────────────────────────
+const msalConfig = {
+  auth: {
+    clientId: "ae2fa073-007c-4fd4-a4c0-bc0101a3faa6",
+    authority: "https://login.microsoftonline.com/49bedfd3-e79c-4a91-b62f-2d2a48349658",
+    redirectUri: "https://resonant-panda-424840.netlify.app/"
+  },
+  cache: { cacheLocation: "sessionStorage" }
+};
+
+const msalInstance = new msal.PublicClientApplication(msalConfig);
+const SCOPES = ["Files.Read", "Files.Read.All", "Sites.Read.All", "Sites.Selected", "User.Read"];
+
+// Excel file identifiers
+const DRIVE_OWNER = "anmar_shawi_wequel_se";
+const FILE_NAME   = "BM-kalkyl 2026.xlsx";
+
+// ─── AUTH ─────────────────────────────────────────────────────
+async function signIn() {
+  try {
+    const result = await msalInstance.loginPopup({ scopes: SCOPES });
+    msalInstance.setActiveAccount(result.account);
+    showApp(result.account);
+    loadData();
+  } catch(e) {
+    console.error("Login failed:", e);
+    document.getElementById("status").textContent = "Inloggning misslyckades: " + e.message;
+  }
+}
+
+function signOut() {
+  msalInstance.logoutPopup();
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("app-screen").style.display = "none";
+}
+
+async function getToken() {
+  const account = msalInstance.getActiveAccount();
+  if (!account) throw new Error("Inte inloggad");
+  const result = await msalInstance.acquireTokenSilent({ scopes: SCOPES, account });
+  return result.accessToken;
+}
+
+function showApp(account) {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app-screen").style.display = "block";
+  const initials = account.name ? account.name.split(" ").map(n=>n[0]).join("").substring(0,2).toUpperCase() : "?";
+  document.getElementById("user-info").innerHTML = `
+    <div class="user-dot">${initials}</div>
+    <span>${account.name || account.username}</span>
+    <button class="logout-btn" onclick="signOut()">Logga ut</button>`;
+}
+
+// Check if already logged in
+async function checkLogin() {
+  await msalInstance.initialize();
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    msalInstance.setActiveAccount(accounts[0]);
+    showApp(accounts[0]);
+    loadData();
+  }
+}
+
+// ─── GRAPH API ────────────────────────────────────────────────
+async function getSheetData(sheetName) {
+  const token = await getToken();
+  const headers = { "Authorization": "Bearer " + token };
+
+  // SharePoint site and file details
+  const siteHostname = "wequel123.sharepoint.com";
+  const sitePath     = "/sites/WeQuelAB";
+  const fileId       = "1D9071F4-4929-43CA-AB90-6FC4989F1CD5";
+
+  // Step 1: Get site ID
+  const siteRes = await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${siteHostname}:${sitePath}`,
+    { headers }
+  );
+  const siteData = await siteRes.json();
+  if (siteData.error) throw new Error("Site-fel: " + siteData.error.message);
+  const siteId = siteData.id;
+
+  // Step 2: Get default document library drive
+  const drivesRes = await fetch(
+    `https://graph.microsoft.com/v1.0/sites/${siteId}/drives`,
+    { headers }
+  );
+  const drivesData = await drivesRes.json();
+  if (drivesData.error) throw new Error("Drive-fel: " + drivesData.error.message);
+  
+  const drive = drivesData.value.find(d => d.name === "Documents" || d.name === "Dokument") || drivesData.value[0];
+  const driveId = drive.id;
+
+  // Step 3: Get file by ID
+  const itemRes = await fetch(
+    `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${fileId}`,
+    { headers }
+  );
+  const itemData = await itemRes.json();
+  if (itemData.error) throw new Error("Fil-fel: " + itemData.error.message);
+
+  // Step 4: Read worksheet data
+  const rangeRes = await fetch(
+    `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${fileId}/workbook/worksheets/${encodeURIComponent(sheetName)}/usedRange`,
+    { headers }
+  );
+  const rangeData = await rangeRes.json();
+  if (rangeData.error) throw new Error("Bladfel: " + rangeData.error.message);
+  return rangeData.values || [];
+}
+
+// ─── DASHBOARD CONFIG ─────────────────────────────────────────
+const MONTHS=["Feb","Mar","Apr","Maj","Jun","Jul","Aug","Sep","Okt","Nov","Dec"];
+const WEEKS=[["V6","V7","V8","V9"],["V10","V11","V12","V13","V14"],["V15","V16","V17","V18"],["V19","V20","V21","V22"],["V23","V24","V25","V26","V27"],["V28","V29","V30","V31"],["V32","V33","V34","V35","V36"],["V37","V38","V39","V40"],["V41","V42","V43","V44"],["V45","V46","V47","V48","V49"],["V50","V51","V52","V53"]];
+const MCOLS=[{plan:2,weeks:[3,4,5,6],utfall:8},{plan:9,weeks:[10,11,12,13,14],utfall:15},{plan:16,weeks:[17,18,19,20],utfall:21},{plan:22,weeks:[23,24,25,26],utfall:27},{plan:28,weeks:[29,30,31,32,33],utfall:34},{plan:35,weeks:[36,37,38,39],utfall:40},{plan:41,weeks:[42,43,44,45,46],utfall:47},{plan:48,weeks:[49,50,51,52],utfall:53},{plan:54,weeks:[55,56,57,58],utfall:59},{plan:60,weeks:[61,62,63,64,65],utfall:66},{plan:67,weeks:[68,69,70,71],utfall:72}];
+const PERSONS=[
+  {id:"sam",name:"Sam",av:"av-s",rows:{kundmote:2,kandidat:3,kval:4,leads:5,konsulter:6}},
+  {id:"hanna",name:"Hanna",av:"av-h",rows:{kundmote:10,kandidat:11,kval:12,leads:13,konsulter:14}},
+  {id:"michel",name:"Michel",av:"av-m",rows:{kundmote:20,kandidat:21,kval:22,leads:23,konsulter:24}},
+  {id:"fredrik",name:"Fredrik",av:"av-f",rows:{kundmote:29,kandidat:30,kval:31,leads:32,konsulter:33}},
+];
+const WEQUEL_ROWS={uppdrag:37,utanUppdrag:38,nojdhet:39,uppfoljning:40};
+const WKPIS=[{key:"uppdrag",label:"Konsulter på uppdrag"},{key:"utanUppdrag",label:"Utan uppdrag (≤ 5%)"},{key:"nojdhet",label:"Kund/konsult nöjdhet"},{key:"uppfoljning",label:"Uppföljning med konsulter"}];
+const KPI_KEYS=["kundmote","kandidat","kval","leads"];
+const KPI_LABELS=["Kundmöte","Kandidatintervju","Kval. kandidat","Qual. Leads"];
+const KPI_MALS={kundmote:20,kandidat:28,kval:10,leads:5};
+
+function getCurrentMonthIndex(){const m=new Date().getMonth();return(m>=1&&m<=11)?m-1:4;}
+let kpiData=null,uppdragData=[],mi=getCurrentMonthIndex(),activeFilter="Alla";
+
+// ─── NAV ──────────────────────────────────────────────────────
+function showPage(p){
+  document.getElementById("page-dashboard").style.display=p==="dashboard"?"":"none";
+  document.getElementById("page-kalkyl").style.display=p==="kalkyl"?"":"none";
+  document.getElementById("refreshBtn").style.display=p==="dashboard"?"flex":"none";
+  document.getElementById("nav-dashboard").classList.toggle("on",p==="dashboard");
+  document.getElementById("nav-kalkyl").classList.toggle("on",p==="kalkyl");
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────
+function g(row,col){if(!kpiData||!kpiData[row])return 0;const x=parseFloat(kpiData[row][col]);return isNaN(x)?0:x;}
+function pct(u,m){if(!m)return null;return Math.round(u/m*100);}
+function pillCls(p){if(p===null)return"pill-n";if(p>=90)return"pill-g";if(p>=60)return"pill-a";return"pill-r";}
+function pbCls(p){if(p===null||p>=90)return"pb-g";if(p>=60)return"pb-a";return"pb-r";}
+function excelToDate(v){
+  if(!v||v==="")return null;
+  if(typeof v==="number"){
+    // Excel serial: days since 1899-12-30
+    const d=new Date(Math.round((v-25569)*864e5));
+    return isNaN(d.getTime())?null:d;
+  }
+  const d=new Date(v);
+  return isNaN(d.getTime())?null:d;
+}
+function fmtDate(v){const d=excelToDate(v);if(!d)return"–";return d.toLocaleDateString("sv-SE",{day:"numeric",month:"short",year:"2-digit"});}
+function slutCell(v){
+  const d=excelToDate(v);
+  if(!d)return'<span style="color:#aaa">–</span>';
+  const days=Math.round((d-new Date())/864e5);
+  const txt=d.toLocaleDateString("sv-SE",{day:"numeric",month:"short",year:"2-digit"});
+  const c=days<=30?"#991b1b":days<=60?"#92400e":"#166534";
+  const bg=days<=30?"#fecaca":days<=60?"#fde68a":"#dcfce7";
+  return`<span style="display:inline-block;padding:2px 8px;border-radius:6px;background:${bg};color:${c};font-weight:600;font-size:11px;white-space:nowrap">${txt}</span>`;
+}
+
+// ─── DASHBOARD RENDER ─────────────────────────────────────────
+function renderTabs(){
+  document.getElementById("tabs").innerHTML=MONTHS.map((m,i)=>
+    `<button class="tab${i===mi?" on":""}" onclick="setM(${i})">${m}</button>`
+  ).join("");
+}
+
+function renderAll(){
+  const mc=MCOLS[mi],weeks=WEEKS[mi];
+  let h="";
+  h+=`<div class="seclab">KPI per säljare — veckovis</div><div class="cards4">`;
+  PERSONS.forEach(p=>{
+    h+=`<div class="pcard"><div class="pcard-head"><div class="av ${p.av}">${p.name[0]}</div><span class="pname">${p.name}</span></div>`;
+    KPI_KEYS.forEach((k,ki)=>{
+      const wv=mc.weeks.map(c=>g(p.rows[k],c));
+      const tot=wv.reduce((s,x)=>s+x,0),mal=KPI_MALS[k],pp=pct(tot,mal),bw=pp?Math.min(pp,100):0;
+      h+=`<div class="kpi-block"><div class="kpi-top"><span class="kpi-label">${KPI_LABELS[ki]}</span><div class="kpi-right"><span class="tot">${tot}</span><span class="mal">/${mal}</span><span class="pill ${pillCls(pp)}">${pp?pp+"%":"–"}</span></div></div><div class="week-row">${wv.map((x,wi)=>`<div class="week-col"><div class="wlbl">${weeks[wi]}</div><div class="wval${x===0?" empty":""}">${x||"–"}</div></div>`).join("")}</div><div class="prog"><div class="pb ${pbCls(pp)}" style="width:${bw}%"></div></div></div>`;
+    });
+    const kv=g(p.rows.konsulter,mc.plan);
+    h+=`<div class="kons-row"><span class="kons-lbl">Konsulter i team</span><span class="kons-val">${kv>0?kv.toFixed(1):"–"}</span></div></div>`;
+  });
+  h+=`</div>`;
+
+  h+=`<div class="seclab">WeQuel — team KPI per månad</div><div class="wcard"><div class="wcard-head"><div class="av av-w">W</div><span class="wname">WeQuel</span></div><div class="wtable-wrap"><table><thead><tr><th style="width:160px">KPI</th>`;
+  MONTHS.forEach((m,i)=>{const a=i===mi;h+=`<th colspan="2" style="text-align:center;font-size:${a?"11":"10"}px;font-weight:${a?600:400};color:${a?"#1a1a1a":"#aaa"};${a?"border-bottom:2px solid #1a1a1a":""}">${m}</th>`;});
+  h+=`</tr><tr><th></th>`;
+  MONTHS.forEach((_,i)=>{const c=i===mi?"#888":"#ccc";h+=`<th style="text-align:center;font-weight:400;color:${c};font-size:10px;padding:0 2px 8px">P</th><th style="text-align:center;font-weight:400;color:${c};font-size:10px;padding:0 2px 8px">U</th>`;});
+  h+=`</tr></thead><tbody>`;
+  WKPIS.forEach(kpi=>{
+    const ri=WEQUEL_ROWS[kpi.key];
+    h+=`<tr><td style="color:#666;white-space:nowrap;font-size:12px;padding:8px 12px 8px 0">${kpi.label}</td>`;
+    MONTHS.forEach((_,i)=>{const mc2=MCOLS[i],p=g(ri,mc2.plan)||null,u=g(ri,mc2.utfall)||null,a=i===mi,bg=a?"background:#f8f8f7":"";const pp=(p&&u)?pct(u,p):null,uc=pp>=90?"#166534":pp>=60?"#92400e":pp!==null?"#991b1b":"#1a1a1a";h+=`<td style="text-align:center;${bg};color:#aaa;font-size:12px;padding:8px 3px">${p||"–"}</td><td style="text-align:center;${bg};font-weight:${u?600:400};color:${u?uc:"#aaa"};font-size:12px;padding:8px 3px">${u||"–"}</td>`;});
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table></div></div>`;
+
+  const aktiva=uppdragData.filter(u=>u.status.toLowerCase()!=="avslutad");
+  const filters=["Alla","Anställd","Underkonsult","Anmar","Sam","Josef","Fredrik"];
+  const filtered=aktiva.filter(u=>activeFilter==="Alla"?true:(activeFilter==="Anställd"||activeFilter==="Underkonsult")?u.typ===activeFilter:u.ansv===activeFilter);
+  const sorted=[...filtered].sort((a,b)=>(!a.slut?1:!b.slut?-1:new Date(a.slut)-new Date(b.slut)));
+
+  h+=`<div class="seclab">Pågående uppdrag</div><div class="uppdrag-card"><div class="uppdrag-head"><span class="uppdrag-title">Aktiva konsulter</span><div class="filter-row">${filters.map(f=>`<button class="filt${f===activeFilter?" on":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div></div>`;
+  h+=`<div class="stats-row"><div class="stat-box"><div class="stat-num">${aktiva.length}</div><div class="stat-lbl">Aktiva totalt</div></div><div class="stat-box"><div class="stat-num">${aktiva.filter(u=>u.typ==="Anställd").length}</div><div class="stat-lbl">Anställda</div></div><div class="stat-box"><div class="stat-num">${aktiva.filter(u=>u.typ==="Underkonsult").length}</div><div class="stat-lbl">Underkonsulter</div></div><div class="stat-box"><div class="stat-num">${filtered.length}</div><div class="stat-lbl">Visar nu</div></div></div>`;
+  h+=`<div class="utbl-wrap"><table><thead><tr><th>Konsult</th><th>Typ</th><th>Kund / Uppdrag</th><th>Start</th><th>Slut</th><th>Status</th><th>Ansvarig</th></tr></thead><tbody>`;
+  sorted.forEach(u=>{
+    const ak=u.ansv||"",d=excelToDate(u.slut),days=d?Math.round((d-new Date())/864e5):null;
+    const rb=days!==null&&days<=30?"background:#fecaca":days!==null&&days<=60?"background:#fde68a":"";
+    h+=`<tr style="${rb}"><td style="font-weight:600">${u.namn}</td><td><span class="typ-badge ${u.typ==="Anställd"?"typ-a":"typ-u"}">${u.typ}</span></td><td style="max-width:220px;color:#666;font-size:11px">${u.uppdrag}</td><td style="color:#aaa;white-space:nowrap">${fmtDate(u.start)}</td><td>${slutCell(u.slut)}</td><td><span class="status-badge">${u.status||"Pågår"}</span></td><td><div style="display:flex;align-items:center;gap:6px"><span class="ansv-dot ansv-${ak}">${ak?ak[0]:"?"}</span><span style="font-size:11px;color:#666">${ak||"–"}</span></div></td></tr>`;
+  });
+  h+=`</tbody></table></div></div>`;
+  document.getElementById("main-content").innerHTML=h;
+}
+
+function parseUppdrag(rows){
+  if(!rows||rows.length<2)return[];
+  return rows.slice(1).map(r=>{const namn=(r[0]||"").toString().trim();if(!namn)return null;return{namn,typ:(r[1]||"").toString().trim(),uppdrag:(r[2]||"").toString().trim(),start:r[3],slut:r[4],status:(r[5]||"Pågår").toString().trim(),ansv:(r[7]||"").toString().trim()};}).filter(Boolean);
+}
+
+function setFilter(f){activeFilter=f;renderAll();}
+function setM(i){mi=i;renderTabs();renderAll();}
+
+// ─── LOAD DATA FROM EXCEL ─────────────────────────────────────
+async function loadData(){
+  document.getElementById("status").textContent="Hämtar data...";
+  document.getElementById("refreshBtn").style.display="none";
+  try{
+    const [kpiRows, uppdragRows] = await Promise.all([
+      getSheetData("Månad KPI 26"),
+      getSheetData("Pågående uppdrag")
+    ]);
+    kpiData = kpiRows;
+    uppdragData = parseUppdrag(uppdragRows);
+    renderTabs();
+    renderAll();
+    document.getElementById("status").textContent="✓ "+new Date().toLocaleTimeString("sv-SE",{hour:"2-digit",minute:"2-digit"});
+    document.getElementById("refreshBtn").style.display="flex";
+  }catch(e){
+    document.getElementById("status").textContent="Fel: "+e.message;
+    document.getElementById("refreshBtn").style.display="flex";
+    document.getElementById("main-content").innerHTML=`<div class="err"><strong>Kunde inte hämta data.</strong><br>${e.message}</div>`;
+  }
+}
+
+// ─── RÄKNESNURRA ──────────────────────────────────────────────
+// ─── RÄKNESNURRA ──────────────────────────────────────────────
+const OH = 45;
+let typ = 'tim';
+
+const CFG = {
+  tim: {
+    lonLbl: 'Timlön', lonUnit: 'kr/tim', greenMin: 39, orangeMin: 28,
+    kostnad: l => l * 1.5 + OH,
+    maxGron: p => Math.max(0, (p * (1 - 0.39) - OH) / 1.5),
+    maxOrange: p => Math.max(0, (p * (1 - 0.28) - OH) / 1.5),
+    toMan:   l => l * 167,
+    visaMan: true,
+    godkannText: l => `${Math.round(l*167).toLocaleString('sv-SE')} kr/mån (${l} kr/tim × 167 tim/mån)`
+  },
+  uk: {
+    lonLbl: 'Timpris', lonUnit: 'kr/tim', greenMin: 18, orangeMin: 12,
+    kostnad: l => l * 1.0 + OH,
+    maxGron: p => Math.max(0, (p * (1 - 0.18) - OH)),
+    maxOrange: p => Math.max(0, (p * (1 - 0.12) - OH)),
+    toMan:   null,
+    visaMan: false,
+    godkannText: l => `${l} kr/tim`
+  },
+  man: {
+    lonLbl: 'Månadslön', lonUnit: 'kr/mån', greenMin: 38, orangeMin: null,
+    kostnad: l => l * 1.8 / 160 + OH,
+    maxGron: p => Math.max(0, Math.round((p * (1 - 0.38) - OH) / 1.8 * 160)),
+    maxOrange: null,
+    toMan:   l => l,
+    visaMan: true,
+    godkannText: l => `${Math.round(l).toLocaleString('sv-SE')} kr/mån`
+  }
+};
+
+function toggleInfo() {
+  const panel = document.getElementById('info-panel-' + typ);
+  const isOpen = panel.style.display === 'block';
+  document.querySelectorAll('.info-panel').forEach(p => p.style.display = 'none');
+  panel.style.display = isOpen ? 'none' : 'block';
+}
+
+function setT(t) {
+  typ = t;
+  document.querySelectorAll('.tt').forEach((b,i) => b.classList.toggle('on', ['tim','uk','man'][i] === t));
+  document.getElementById('lon-lbl').textContent  = CFG[t].lonLbl;
+  document.getElementById('lon-unit').textContent = CFG[t].lonUnit;
+  document.getElementById('inp-lon').value  = '';
+  document.getElementById('inp-pris').value = '';
+  document.querySelectorAll('.qb').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.info-panel').forEach(p => p.style.display = 'none');
+  calc();
+}
+
+function setQ(v) {
+  document.getElementById('inp-pris').value = v;
+  document.querySelectorAll('.qb').forEach(b => b.classList.toggle('on', parseInt(b.textContent.replace(/\s/g,'')) === v));
+  calc();
+}
+
+function drawGauge(pct, color) {
+  const c = Math.max(0, Math.min(100, pct));
+  const angle = (c / 100) * 180;
+  const rad = (angle - 180) * Math.PI / 180;
+  const cx = 90, cy = 90, r = 72;
+  const x = cx + r * Math.cos(rad);
+  const y = cy + r * Math.sin(rad);
+  const arcPath = pct > 0
+    ? `<path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${x} ${y}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round"/>`
+    : '';
+  return `<svg class="gauge-svg" viewBox="0 0 180 100">
+    <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="#e8e8e6" stroke-width="12" stroke-linecap="round"/>
+    ${arcPath}
+    <circle cx="${x}" cy="${y}" r="6" fill="${pct > 0 ? color : '#e8e8e6'}"/>
+  </svg>`;
+}
+
+function calc() {
+  const cfg  = CFG[typ];
+  const lon  = parseFloat(document.getElementById('inp-lon').value)  || 0;
+  const pris = parseFloat(document.getElementById('inp-pris').value) || 0;
+
+  if (!lon || !pris) {
+    document.getElementById('result').innerHTML = `
+      <div class="result-card empty">
+        <div class="empty-icon">💡</div>
+        <div class="empty-txt">Fyll i ${!lon ? cfg.lonLbl.toLowerCase() : 'arvode'} för att se marginal</div>
+      </div>`;
+    return;
+  }
+
+  const kost = cfg.kostnad(lon);
+  const mp   = ((pris - kost) / pris) * 100;
+
+  let level, color, cls, statusTxt;
+  if (cfg.orangeMin !== null) {
+    if (mp >= cfg.greenMin)       { level='green';  color='#639922'; cls='green';  statusTxt='✓ Acceptabel'; }
+    else if (mp >= cfg.orangeMin) { level='orange'; color='#BA7517'; cls='orange'; statusTxt='⚠ Kan beslutas av chef'; }
+    else                          { level='red';    color='#E24B4A'; cls='red';    statusTxt='⚠️ Kräver skriftligt godkännande'; }
+  } else {
+    if (mp >= cfg.greenMin) { level='green'; color='#639922'; cls='green'; statusTxt='✓ Acceptabel'; }
+    else                    { level='red';   color='#E24B4A'; cls='red';   statusTxt='⚠️ Kräver skriftligt godkännande'; }
+  }
+  const gauge = drawGauge(Math.max(0, mp), color);
+
+  const maxLon = cfg.maxGron(pris);
+  const maxMan = cfg.visaMan ? cfg.toMan(maxLon) : null;
+  const maxLonOrange = cfg.maxOrange ? cfg.maxOrange(pris) : null;
+  const maxManOrange = (cfg.visaMan && maxLonOrange !== null) ? cfg.toMan(maxLonOrange) : null;
+
+  let lonInfo = '';
+  if (cfg.visaMan) {
+    const manVal = cfg.toMan(lon);
+    if (level === 'red') {
+      lonInfo = `
+        <div class="divider"></div>
+        <div class="lon-row">
+          <span class="lon-lbl">⚠️ Kräver godkännande</span>
+          <span class="lon-val red">${Math.round(manVal).toLocaleString('sv-SE')} kr/mån</span>
+        </div>
+        <div class="warn-text red">Godkännande från ansvarig chef krävs innan lönen kommuniceras.</div>`;
+    } else if (level === 'orange') {
+      lonInfo = `
+        <div class="divider"></div>
+        <div class="lon-row">
+          <span class="lon-lbl">Lön att kommunicera</span>
+          <span class="lon-val" style="color:#633806">${Math.round(manVal).toLocaleString('sv-SE')} kr/mån</span>
+        </div>
+        <div class="warn-text" style="color:#633806">Inom acceptabel zon — konsultchef kan besluta själv.</div>`;
+    } else {
+      lonInfo = `
+        <div class="divider"></div>
+        <div class="lon-row">
+          <span class="lon-lbl">Lön att kommunicera</span>
+          <span class="lon-val green">${Math.round(manVal).toLocaleString('sv-SE')} kr/mån</span>
+        </div>`;
+    }
+  }
+
+  let maxGrid = `<div class="mi-item"><div class="mi-lbl">${cfg.lonLbl} (max grön)</div><div class="mi-val green">≤ ${Math.round(maxLon).toLocaleString('sv-SE')} ${cfg.lonUnit}</div></div>`;
+  if (maxMan) {
+    maxGrid = `<div class="max-grid">
+      <div class="max-item"><div class="mi-lbl">${cfg.lonLbl} (max grön)</div><div class="mi-val green">≤ ${Math.round(maxLon).toLocaleString('sv-SE')} ${cfg.lonUnit}</div></div>
+      <div class="max-item"><div class="mi-lbl">Månadslön (tak grön)</div><div class="mi-val green">≤ ${Math.round(maxMan).toLocaleString('sv-SE')} kr/mån</div></div>
+    </div>`;
+  }
+  let maxGridOrange = '';
+  if (maxLonOrange !== null) {
+    maxGridOrange = maxManOrange
+      ? `<div class="max-grid" style="margin-top:8px;">
+          <div class="max-item"><div class="mi-lbl">${cfg.lonLbl} (max orange)</div><div class="mi-val" style="color:#633806">≤ ${Math.round(maxLonOrange).toLocaleString('sv-SE')} ${cfg.lonUnit}</div></div>
+          <div class="max-item"><div class="mi-lbl">Månadslön (tak orange)</div><div class="mi-val" style="color:#633806">≤ ${Math.round(maxManOrange).toLocaleString('sv-SE')} kr/mån</div></div>
+        </div>`
+      : `<div class="mi-item" style="margin-top:8px;"><div class="mi-lbl">${cfg.lonLbl} (max orange)</div><div class="mi-val" style="color:#633806">≤ ${Math.round(maxLonOrange).toLocaleString('sv-SE')} ${cfg.lonUnit}</div></div>`;
+  }
+
+  const boxBg = level;
+
+  document.getElementById('result').innerHTML = `
+    <div class="result-card ${cls}">
+      <div class="gauge-wrap">${gauge}</div>
+      <div class="pct-big" style="color:${color}">${mp.toFixed(1)}%</div>
+      <div style="text-align:center">
+        <span class="status-pill sp-${level==='green'?'g':level==='orange'?'o':'r'}">${statusTxt}</span>
+      </div>
+      ${lonInfo}
+      <div class="divider"></div>
+      <div class="max-box ${boxBg}">
+        <div class="max-lbl ${boxBg}">Gränsvärden för denna affär</div>
+        ${maxGrid}
+        ${maxGridOrange}
+      </div>
+    </div>`;
+}
+
+
+// ─── INIT ─────────────────────────────────────────────────────
+checkLogin();
+</script>
+</body>
+</html>
