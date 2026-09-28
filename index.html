@@ -721,7 +721,6 @@ function renderKPI(){
         const tsUtfall=tsU;
         const pfUtfall=tsU;
         const pfPlan=gk(kpiData2,p.rows.tillsatt,mc2.plan);
-        const pfPlan=gk(kpiData2,p.rows.portfölj-1,mc2.plan);
         const kmOk=kmUtfall>=KUNDMOTE_MAL;
         const tsOk=tsUtfall>=1;
         const pfOk=pfPlan===0||pfUtfall>=pfPlan;
