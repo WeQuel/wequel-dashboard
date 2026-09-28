@@ -228,6 +228,7 @@ h1{font-size:17px;font-weight:600;color:#1a1a1a;margin-bottom:2px;}
   <div id="dashboard-content"></div>
 </div>
 
+<div id="page-kpi" style="display:none;"><div id="kpi-content"></div></div>
 <div id="page-kalkyl" style="display:none;">
 <div class="wrap">
   <div>
@@ -541,40 +542,19 @@ function renderTabs(){
 
 function renderAll(){
   const mc=MCOLS[mi],weeks=WEEKS[mi];
-  let h="";
-  h+=`<div class="seclab">KPI per säljare — veckovis</div><div class="cards4">`;
-  PERSONS.forEach(p=>{
-    h+=`<div class="pcard"><div class="pcard-head"><div class="av ${p.av}">${p.name[0]}</div><span class="pname">${p.name}</span></div>`;
-    KPI_KEYS.forEach((k,ki)=>{
-      const wv=mc.weeks.map(c=>g(p.rows[k],c));
-      const tot=wv.reduce((s,x)=>s+x,0),mal=KPI_MALS[k],pp=pct(tot,mal),bw=pp?Math.min(pp,100):0;
-      h+=`<div class="kpi-block"><div class="kpi-top"><span class="kpi-label">${KPI_LABELS[ki]}</span><div class="kpi-right"><span class="tot">${tot}</span><span class="mal">/${mal}</span><span class="pill ${pillCls(pp)}">${pp?pp+"%":"–"}</span></div></div><div class="week-row">${wv.map((x,wi)=>`<div class="week-col"><div class="wlbl">${weeks[wi]}</div><div class="wval${x===0?" empty":""}">${x||"–"}</div></div>`).join("")}</div><div class="prog"><div class="pb ${pbCls(pp)}" style="width:${bw}%"></div></div></div>`;
-    });
-    const kv=g(p.rows.konsulter,mc.plan);
-    h+=`<div class="kons-row"><span class="kons-lbl">Konsulter i team</span><span class="kons-val">${kv>0?kv.toFixed(1):"–"}</span></div></div>`;
-  });
-  h+=`</div>`;
-
-  h+=`<div class="seclab">WeQuel — team KPI per månad</div><div class="wcard"><div class="wcard-head"><div class="av av-w">W</div><span class="wname">WeQuel</span></div><div class="wtable-wrap"><table><thead><tr><th style="width:160px">KPI</th>`;
-  MONTHS.forEach((m,i)=>{const a=i===mi;h+=`<th colspan="2" style="text-align:center;font-size:${a?"11":"10"}px;font-weight:${a?600:400};color:${a?"#1a1a1a":"#aaa"};${a?"border-bottom:2px solid #1a1a1a":""}">${m}</th>`;});
-  h+=`</tr><tr><th></th>`;
-  MONTHS.forEach((_,i)=>{const c=i===mi?"#888":"#ccc";h+=`<th style="text-align:center;font-weight:400;color:${c};font-size:10px;padding:0 2px 8px">P</th><th style="text-align:center;font-weight:400;color:${c};font-size:10px;padding:0 2px 8px">U</th>`;});
-  h+=`</tr></thead><tbody>`;
-  WKPIS.forEach(kpi=>{
-    const ri=WEQUEL_ROWS[kpi.key];
-    h+=`<tr><td style="color:#666;white-space:nowrap;font-size:12px;padding:8px 12px 8px 0">${kpi.label}</td>`;
-    MONTHS.forEach((_,i)=>{const mc2=MCOLS[i],p=g(ri,mc2.plan)||null,u=g(ri,mc2.utfall)||null,a=i===mi,bg=a?"background:#f8f8f7":"";const pp=(p&&u)?pct(u,p):null,uc=pp>=90?"#166534":pp>=60?"#92400e":pp!==null?"#991b1b":"#1a1a1a";h+=`<td style="text-align:center;${bg};color:#aaa;font-size:12px;padding:8px 3px">${p||"–"}</td><td style="text-align:center;${bg};font-weight:${u?600:400};color:${u?uc:"#aaa"};font-size:12px;padding:8px 3px">${u||"–"}</td>`;});
-    h+=`</tr>`;
-  });
-  h+=`</tbody></table></div></div>`;
-
   const aktiva=uppdragData.filter(u=>u.status.toLowerCase()!=="avslutad");
   const filters=["Alla","Anställd","Underkonsult","Anmar","Sam","Josef","Fredrik"];
   const filtered=aktiva.filter(u=>activeFilter==="Alla"?true:(activeFilter==="Anställd"||activeFilter==="Underkonsult")?u.typ===activeFilter:u.ansv===activeFilter);
   const sorted=[...filtered].sort((a,b)=>(!a.slut?1:!b.slut?-1:new Date(a.slut)-new Date(b.slut)));
+  const nearEnd=aktiva.filter(u=>{const d=excelToDate(u.slut);return d&&Math.round((d-new Date())/864e5)<=70;}).length;
 
-  h+=`<div class="uppdrag-card"><div class="uppdrag-head"><span class="uppdrag-title">Aktiva konsulter</span><div class="filter-row">${filters.map(f=>`<button class="filt${f===activeFilter?" on":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div></div>`;
-  h+=`<div class="stats-row"><div class="stat-box"><div class="stat-num">${aktiva.length}</div><div class="stat-lbl">Aktiva totalt</div></div><div class="stat-box"><div class="stat-num">${aktiva.filter(u=>u.typ==="Anställd").length}</div><div class="stat-lbl">Anställda</div></div><div class="stat-box"><div class="stat-num">${aktiva.filter(u=>u.typ==="Underkonsult").length}</div><div class="stat-lbl">Underkonsulter</div></div><div class="stat-box"><div class="stat-num">${filtered.length}</div><div class="stat-lbl">Visar nu</div></div></div>`;
+  let h=`<div class="uppdrag-card"><div class="uppdrag-head"><span class="uppdrag-title">Aktiva konsulter</span><div class="filter-row">${filters.map(f=>`<button class="filt${f===activeFilter?" on":""}" onclick="setFilter('${f}')">${f}</button>`).join("")}</div></div>`;
+  h+=`<div class="stats-row">
+    <div class="stat-box"><div class="stat-num">${aktiva.length}</div><div class="stat-lbl">Aktiva totalt</div></div>
+    <div class="stat-box"><div class="stat-num">${aktiva.filter(u=>u.typ==="Anställd").length}</div><div class="stat-lbl">Anställda</div></div>
+    <div class="stat-box"><div class="stat-num">${aktiva.filter(u=>u.typ==="Underkonsult").length}</div><div class="stat-lbl">Underkonsulter</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:${nearEnd>0?"#991b1b":"#1a1a1a"}">${nearEnd}</div><div class="stat-lbl">Slutar inom 10 v</div></div>
+  </div>`;
   h+=`<div class="utbl-wrap"><table><thead><tr><th>Konsult</th><th>Typ</th><th>Kund / Uppdrag</th><th>Start</th><th>Slut</th><th>Status</th><th>Ansvarig</th></tr></thead><tbody>`;
   sorted.forEach(u=>{
     const ak=u.ansv||"",d=excelToDate(u.slut),days=d?Math.round((d-new Date())/864e5):null;
@@ -583,179 +563,6 @@ function renderAll(){
   });
   h+=`</tbody></table></div></div>`;
   document.getElementById("dashboard-content").innerHTML=h;
-}
-
-
-// ─── KPI MÅNAD DATA ───────────────────────────────────────────
-const KPI_PERSONS = [
-  {id:"sam",    name:"Sam",    av:"av-s", color:"#4f46e5",
-   rows:{kundmote:2, tillsatt:3, portfölj:4}},
-  {id:"hanna",  name:"Hanna",  av:"av-h", color:"#d97706",
-   rows:{kundmote:8, tillsatt:9, portfölj:10}},
-  {id:"michel", name:"Michel", av:"av-m", color:"#059669",
-   rows:{kundmote:14, tillsatt:15, portfölj:16}},
-  {id:"fredrik",name:"Fredrik",av:"av-f", color:"#dc2626",
-   rows:{kundmote:20, tillsatt:21, portfölj:22}},
-];
-
-// KPI Månad col structure per month (0-indexed cols)
-// Oct=0: plan=9(J), wks=[10,11,12,13](K-N), utfall=14(O)
-// Nov=1: plan=15(P), wks=[16,17,18,19](Q-T), utfall=20(U)
-// Dec=2: plan=21(W), wks=[22,23,24,25](X-AA), utfall=27(AB) -- approx
-const KPI_MCOLS = [
-  {plan:9,  weeks:[10,11,12,13], utfall:14, weqPlan:9,  weqUtfall:14},  // Okt
-  {plan:15, weeks:[16,17,18,19], utfall:20, weqPlan:15, weqUtfall:20},  // Nov
-  {plan:21, weeks:[22,23,24,25], utfall:27, weqPlan:21, weqUtfall:27},  // Dec
-  {plan:28, weeks:[29,30,31,32], utfall:34, weqPlan:28, weqUtfall:34},  // Jan
-  {plan:35, weeks:[36,37,38,39], utfall:40, weqPlan:35, weqUtfall:40},  // Feb
-  {plan:41, weeks:[42,43,44,45], utfall:47, weqPlan:41, weqUtfall:47},  // Mar
-  {plan:48, weeks:[49,50,51,52], utfall:53, weqPlan:48, weqUtfall:53},  // Apr
-  {plan:54, weeks:[55,56,57,58], utfall:59, weqPlan:54, weqUtfall:59},  // Maj
-  {plan:60, weeks:[61,62,63,64], utfall:66, weqPlan:60, weqUtfall:66},  // Jun
-  {plan:67, weeks:[68,69,70,71], utfall:72, weqPlan:67, weqUtfall:72},  // Jul
-  {plan:73, weeks:[74,75,76,77], utfall:78, weqPlan:73, weqUtfall:78},  // Aug
-  {plan:79, weeks:[80,81,82,83], utfall:84, weqPlan:79, weqUtfall:84},  // Sep
-];
-
-const KPI_MONTHS = ['Okt','Nov','Dec','Jan','Feb','Mar','Apr','Maj','Jun','Jul','Aug','Sep'];
-const KPI_WEEKS_MAP = [
-  ['V41','V42','V43','V44'],['V45','V46','V47','V48'],['V49','V50','V51','V52'],
-  ['V1','V2','V3','V4'],['V5','V6','V7','V8'],['V9','V10','V11','V12'],
-  ['V13','V14','V15','V16'],['V17','V18','V19','V20'],['V21','V22','V23','V24'],
-  ['V25','V26','V27','V28'],['V29','V30','V31','V32'],['V33','V34','V35','V36'],
-];
-const WEQUEL_ROW_KPI = 26; // row 27 in Excel (0-indexed = 26)
-const KUNDMOTE_MAL = 15;
-
-let kpiData2 = null;
-let kpiMi = 0; // default Okt
-
-function gk(data, row, col) {
-  if(!data||!data[row])return 0;
-  const x=parseFloat(data[row][col]);
-  return isNaN(x)?0:x;
-}
-
-function renderKPITabs() {
-  const tabsEl = document.getElementById('kpi-tabs');
-  if(!tabsEl)return;
-  tabsEl.innerHTML = KPI_MONTHS.map((m,i)=>
-    `<button class="tab${i===kpiMi?" on":""}" onclick="setKpiM(${i})">${m}</button>`
-  ).join('');
-}
-
-function setKpiM(i){kpiMi=i;renderKPITabs();renderKPI();}
-
-function renderKPI() {
-  const el = document.getElementById('kpi-content');
-  if(!el)return;
-  if(!kpiData2){
-    el.innerHTML='<div style="padding:2rem;text-align:center;color:#aaa;">Laddar KPI-data...</div>';
-    return;
-  }
-  const mc = KPI_MCOLS[kpiMi];
-  const weeks = KPI_WEEKS_MAP[kpiMi];
-  const monthName = KPI_MONTHS[kpiMi];
-
-  let h = '';
-
-  // Month tabs
-  h += `<div class="tabs" id="kpi-tabs">${KPI_MONTHS.map((m,i)=>`<button class="tab${i===kpiMi?" on":""}" onclick="setKpiM(${i})">${m}</button>`).join('')}</div>`;
-
-  h += `<div class="seclab">KPI per konsultchef — ${monthName} 2026</div><div class="cards4">`;
-
-  KPI_PERSONS.forEach(p => {
-    const kmUtfall = gk(kpiData2, p.rows.kundmote-1, mc.utfall);
-    const kmPlan   = gk(kpiData2, p.rows.kundmote-1, mc.plan) || KUNDMOTE_MAL;
-    const kmWeeks  = mc.weeks.map(c => gk(kpiData2, p.rows.kundmote-1, c));
-    const kmTot    = kmWeeks.reduce((s,x)=>s+x, 0);
-
-    const tsUtfall = gk(kpiData2, p.rows.tillsatt-1, mc.utfall);
-    const tsWeeks  = mc.weeks.map(c => gk(kpiData2, p.rows.tillsatt-1, c));
-    const tsTot    = tsWeeks.reduce((s,x)=>s+x, 0);
-
-    const pfUtfall = gk(kpiData2, p.rows.portfölj-1, mc.utfall);
-    const pfPlan   = gk(kpiData2, p.rows.portfölj-1, mc.plan);
-
-    // Determine if month is closed (utfall registered)
-    const monthClosed = kmUtfall > 0 || tsUtfall > 0;
-    const kmVal = monthClosed ? kmUtfall : kmTot;
-    const tsVal = monthClosed ? tsUtfall : tsTot;
-
-    // Green/red logic: only color when month is closed
-    const kmGreen = monthClosed && kmVal >= KUNDMOTE_MAL;
-    const kmRed   = monthClosed && kmVal < KUNDMOTE_MAL;
-    const tsGreen = monthClosed && tsVal >= 1;
-    const tsRed   = monthClosed && tsVal < 1;
-    const pfGreen = monthClosed && pfUtfall >= pfPlan;
-    const pfRed   = monthClosed && pfPlan > 0 && pfUtfall < pfPlan;
-
-    const allGreen = monthClosed && kmGreen && tsGreen && pfGreen;
-    const anyRed   = monthClosed && (kmRed || tsRed || pfRed);
-
-    const cardBg = !monthClosed ? 'background:#fff;border:1px solid #e8e8e6;' :
-                   allGreen ? 'background:#f0fdf4;border:1px solid #86efac;' :
-                   'background:#fff0f0;border:1px solid #fca5a5;';
-
-    const badgeHtml = !monthClosed ? '' :
-      allGreen ? '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#86efac;color:#166534;font-weight:500;">Grön</span>' :
-                 '<span style="font-size:10px;padding:2px 8px;border-radius:999px;background:#fca5a5;color:#991b1b;font-weight:500;">Röd</span>';
-
-    const textC = !monthClosed ? '#1a1a1a' : (allGreen ? '#1a1a1a' : '#1a1a1a');
-    const mutedC = !monthClosed ? '#aaa' : (allGreen ? '#666' : '#666');
-    const divC = !monthClosed ? '#f0f0ee' : (allGreen ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.08)');
-
-    const kmPct = kmVal > 0 ? Math.min(Math.round(kmVal/KUNDMOTE_MAL*100),100) : 0;
-    const kmPillCls = !monthClosed ? 'pill-n' : kmGreen ? 'pill-g' : 'pill-r';
-    const kmPbCls   = !monthClosed ? 'pb-g' : kmGreen ? 'pb-g' : 'pb-r';
-    const tsPillHtml = !monthClosed ? `<span class="pill pill-n">–</span>` :
-                       tsGreen ? `<span class="pill pill-g">✓</span>` :
-                                 `<span class="pill pill-r">✗</span>`;
-    const tsPbCls = !monthClosed ? 'pb-g' : tsGreen ? 'pb-g' : 'pb-r';
-    const tsPb = tsVal > 0 ? 100 : 0;
-    const pfDot = !monthClosed ? '' :
-                  pfGreen ? '<div style="width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>' :
-                            '<div style="width:7px;height:7px;border-radius:50%;background:#e24b4a;flex-shrink:0;"></div>';
-
-    h += `<div class="pcard" style="${cardBg}">`;
-    h += `<div class="pcard-head" style="border-bottom:1px solid ${divC};justify-content:space-between;">`;
-    h += `<div style="display:flex;align-items:center;gap:8px;"><div class="av ${p.av}">${p.name[0]}</div><span class="pname">${p.name}</span></div>${badgeHtml}</div>`;
-
-    // Kundmöten
-    h += `<div class="kpi-block" style="border-bottom:1px solid ${divC};">`;
-    h += `<div class="kpi-top"><span class="kpi-label">Kundmöten</span><div class="kpi-right"><span class="tot">${kmVal}</span><span class="mal">/${KUNDMOTE_MAL}</span><span class="pill ${kmPillCls}">${kmPct?kmPct+"%":"–"}</span></div></div>`;
-    h += `<div class="week-row">${weeks.map((w,wi)=>`<div class="week-col"><div class="wlbl">${w}</div><div class="wval${kmWeeks[wi]===0?" empty":""}">${kmWeeks[wi]||"–"}</div></div>`).join("")}</div>`;
-    h += `<div class="prog"><div class="pb ${kmPbCls}" style="width:${kmPct}%"></div></div></div>`;
-
-    // Tillsättningar
-    h += `<div class="kpi-block" style="border-bottom:1px solid ${divC};">`;
-    h += `<div class="kpi-top"><span class="kpi-label">Tillsättningar</span><div class="kpi-right"><span class="tot">${tsVal}</span><span class="mal">/mån</span>${tsPillHtml}</div></div>`;
-    h += `<div class="week-row">${weeks.map((w,wi)=>`<div class="week-col"><div class="wlbl">${w}</div><div class="wval${tsWeeks[wi]===0?" empty":""}">${tsWeeks[wi]||"–"}</div></div>`).join("")}</div>`;
-    h += `<div class="prog"><div class="pb ${tsPbCls}" style="width:${tsPb}%"></div></div></div>`;
-
-    // Aktiv portfölj
-    h += `<div class="kpi-block" style="border-bottom:none;">`;
-    h += `<div style="display:flex;align-items:center;justify-content:space-between;">`;
-    h += `<span class="kpi-label">Aktiv portfölj</span>`;
-    h += `<div style="display:flex;align-items:center;gap:5px;"><span style="font-size:13px;font-weight:600;">${pfUtfall||"–"}</span><span style="font-size:10px;color:#aaa;">/ mål ≥${pfPlan||"–"}</span>${pfDot}</div>`;
-    h += `</div></div>`;
-
-    h += `</div>`;
-  });
-  h += `</div>`;
-
-  // WeQuel totalt
-  const wqPlan   = gk(kpiData2, WEQUEL_ROW_KPI, mc.weqPlan);
-  const wqUtfall = gk(kpiData2, WEQUEL_ROW_KPI, mc.weqUtfall);
-  h += `<div class="seclab">WeQuel — totalt antal konsulter</div>`;
-  h += `<div class="wcard"><div class="wcard-head"><div class="av av-w">W</div><span class="wname">WeQuel</span></div>`;
-  h += `<div style="display:flex;align-items:center;justify-content:center;padding:16px;gap:32px;">`;
-  h += `<div style="text-align:center;"><div style="font-size:26px;font-weight:600;color:#121882;">${wqPlan||"–"}</div><div style="font-size:11px;color:#888;margin-top:2px;">Planerat</div></div>`;
-  h += `<div style="width:0.5px;height:40px;background:#e8e8e6;"></div>`;
-  h += `<div style="text-align:center;"><div style="font-size:26px;font-weight:600;color:${wqUtfall>0?"#22c55e":"#1a1a1a"};">${wqUtfall||"–"}</div><div style="font-size:11px;color:#888;margin-top:2px;">Utfall</div></div>`;
-  h += `</div></div>`;
-
-  el.innerHTML = h;
 }
 
 function parseUppdrag(rows){
@@ -786,7 +593,7 @@ async function loadData(){
   }catch(e){
     document.getElementById("status").textContent="Fel: "+e.message;
     document.getElementById("refreshBtn").style.display="flex";
-    document.getElementById("main-content").innerHTML=`<div class="err"><strong>Kunde inte hämta data.</strong><br>${e.message}</div>`;
+    document.getElementById("dashboard-content").innerHTML=`<div class="err"><strong>Kunde inte hämta data.</strong><br>${e.message}</div>`;
   }
 }
 
